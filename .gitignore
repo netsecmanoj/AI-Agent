@@ -9,6 +9,8 @@ __pycache__/
 *.db
 *.sqlite3
 .env
+.env copy
+.env.*copy
 .DS_Store
 reports/generated/
 uploads/

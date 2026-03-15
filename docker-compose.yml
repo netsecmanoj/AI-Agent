@@ -1,0 +1,28 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+      - audit_db:/app/db
+      - audit_reports:/app/reports/generated
+      - audit_uploads:/app/uploads
+      - audit_workspaces:/app/workspaces
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+volumes:
+  audit_db:
+  audit_reports:
+  audit_uploads:
+  audit_workspaces:

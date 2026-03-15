@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.coverage
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+.env
+.DS_Store
+reports/generated/
+uploads/
+workspaces/

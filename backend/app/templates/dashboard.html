@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero-layout">
+  <article class="panel hero-card hero-card-primary">
+    <div class="hero-copy">
+      <p class="eyebrow">Dashboard</p>
+      <h2>Run a scan and browse history</h2>
+      <p class="hero-text">Start a new review, then use the scan list below to see what finished cleanly, what had tool coverage issues, and where risk is trending.</p>
+    </div>
+    <div class="metric-grid">
+      <article class="metric-card">
+        <span class="metric-label">Recent scans</span>
+        <strong class="metric-value">{{ latest_scans|length }}</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Queued</span>
+        <strong class="metric-value">{{ status_counts.get('queued', 0) }}</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Running</span>
+        <strong class="metric-value">{{ status_counts.get('running', 0) }}</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Completed cleanly</span>
+        <strong class="metric-value">{{ result_counts.get('Completed', 0) }}</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Completed with tool issues</span>
+        <strong class="metric-value">{{ result_counts.get('Completed with tool issues', 0) }}</strong>
+      </article>
+      <article class="metric-card">
+        <span class="metric-label">Critical findings</span>
+        <strong class="metric-value">{{ severity_counts.get('critical', 0) }}</strong>
+      </article>
+    </div>
+  </article>
+
+  <article class="panel hero-card hero-card-secondary">
+    <div class="panel-header">
+      <div>
+        <p class="eyebrow">New scan</p>
+        <h3>Start a review</h3>
+      </div>
+    </div>
+    {% if error %}
+    <p class="error-banner">{{ error }}</p>
+    {% endif %}
+    {% if can_submit_scans %}
+    <form method="post" action="/scans" class="stack" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <label>
+        Existing project
+        <select name="project_id">
+          <option value="">Create or infer project</option>
+          {% for project in all_projects %}
+          <option value="{{ project.id }}">{{ project.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Project name for new scan target
+        <input type="text" name="project_name" placeholder="api-service">
+      </label>
+      <label>
+        Local source path
+        <input type="text" name="source_path" placeholder="/path/to/repository">
+      </label>
+      <label>
+        Zip archive upload
+        <input type="file" name="archive_file" accept=".zip" {% if not allow_archive_uploads %}disabled{% endif %}>
+      </label>
+      <button type="submit" {% if not allow_local_path_scans and not allow_archive_uploads %}disabled{% endif %}>Start scan</button>
+    </form>
+    <p class="help-text">
+      Use either a local path or a `.zip` archive. The request only prepares the workspace and queues the scan; the background worker does the actual scanning afterward.
+    </p>
+    {% else %}
+    <p class="help-text">Your current role can browse scans and reports but cannot submit new scans.</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="summary-strip">
+  <article class="panel summary-card">
+    <p class="eyebrow">Severity overview</p>
+    <h3>Current findings mix</h3>
+    <ul class="summary-list compact-list">
+      <li>Critical <strong>{{ severity_counts.get('critical', 0) }}</strong></li>
+      <li>High <strong>{{ severity_counts.get('high', 0) }}</strong></li>
+      <li>Medium <strong>{{ severity_counts.get('medium', 0) }}</strong></li>
+      <li>Low <strong>{{ severity_counts.get('low', 0) }}</strong></li>
+    </ul>
+  </article>
+  <article class="panel summary-card">
+    <p class="eyebrow">Recent projects</p>
+    <h3>Most recently scanned</h3>
+    <ul class="summary-list compact-list">
+      {% for project in recent_projects %}
+      <li>{{ project.name }} <strong>{{ project.source_type }}</strong></li>
+      {% else %}
+      <li>No projects scanned yet.</li>
+      {% endfor %}
+    </ul>
+  </article>
+  <article class="panel summary-card summary-card-muted">
+    <p class="eyebrow">Operations</p>
+    <h3>Worker and retention</h3>
+    <p class="help-text">Operational details are available below and kept visually secondary.</p>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Recent scan history</p>
+      <h3>What happened most recently</h3>
+      <p class="help-text">Refresh the page to update queued and running scans. Finished scan durations are fixed and no longer changing.</p>
+    </div>
+    <a class="button-link button-secondary" href="{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}">Refresh</a>
+  </div>
+
+  <details class="subtle-details">
+    <summary>Filter scan history</summary>
+    <form method="get" action="/" class="filter-grid top-gap">
+      <label>
+        Project
+        <select name="project">
+          <option value="">All projects</option>
+          {% for project_name in project_options %}
+          <option value="{{ project_name }}" {% if active_filters.project == project_name %}selected{% endif %}>{{ project_name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Status
+        <select name="status">
+          <option value="">All statuses</option>
+          {% for status_option in filter_options.status %}
+          <option value="{{ status_option }}" {% if active_filters.status == status_option %}selected{% endif %}>{{ status_option }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Source type
+        <select name="source_type">
+          <option value="">All source types</option>
+          {% for source_option in filter_options.source_type %}
+          <option value="{{ source_option }}" {% if active_filters.source_type == source_option %}selected{% endif %}>{{ source_option }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Severity
+        <select name="severity">
+          <option value="">Any severity</option>
+          {% for severity_option in filter_options.severity %}
+          <option value="{{ severity_option }}" {% if active_filters.severity == severity_option %}selected{% endif %}>{{ severity_option }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <div class="filter-actions">
+        <button type="submit">Apply filters</button>
+        <a class="button-link button-secondary" href="/">Clear</a>
+      </div>
+    </form>
+  </details>
+
+  <div class="table-shell">
+    <table class="readable-table">
+      <thead>
+        <tr>
+          <th>Project</th>
+          <th>Scan result</th>
+          <th>Findings summary</th>
+          <th>Tool coverage</th>
+          <th>Detected stack</th>
+          <th>Activity</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in scan_rows %}
+        <tr>
+          <td>
+            <a href="/scans/{{ row.scan.id }}">{{ row.scan.project.name }}</a><br>
+            <span class="help-text">{{ row.scan.source_type }}</span>
+            {% if row.scan.source_label %}
+            <br><span class="help-text">{{ row.scan.source_label }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="status status-{{ row.result_tone }}">{{ row.result_label }}</span>
+            <p class="help-text">{{ row.progress_message }}</p>
+          </td>
+          <td>
+            <strong>{{ row.scan.total_findings }}</strong> findings
+            <p class="help-text">Highest severity: {{ row.highest_severity or "none" }}</p>
+            <p class="help-text">{{ row.findings_summary }}</p>
+          </td>
+          <td>
+            <strong>{{ row.tool_coverage.completed_count }}</strong> completed
+            <p class="help-text">
+              {% if row.tool_coverage.issue_count %}
+              {{ row.tool_coverage.issue_count }} skipped or failed tools
+              {% else %}
+              No tool coverage issues
+              {% endif %}
+            </p>
+          </td>
+          <td><span class="help-text">{{ row.stack_summary }}</span></td>
+          <td>
+            <span class="help-text">Queued {{ row.scan.queued_at.strftime("%Y-%m-%d %H:%M UTC") if row.scan.queued_at else "n/a" }}</span><br>
+            <span class="help-text">Created {{ row.scan.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</span><br>
+            <span class="help-text">
+              {% if row.scan.status in ["completed", "partial", "failed"] and row.duration_text != "n/a" %}
+              Fixed duration {{ row.duration_text }}
+              {% elif row.scan.status == "running" %}
+              In progress
+              {% else %}
+              Duration pending
+              {% endif %}
+            </span>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">No scans matched the current filters.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<details class="subtle-details panel operational-panel">
+  <summary>Operational details</summary>
+  <div class="stats-grid top-gap">
+    <article class="panel panel-subtle">
+      <h3>Worker health</h3>
+      <ul class="summary-list compact-list">
+        <li>Running <strong>{{ "yes" if worker_status.running else "no" }}</strong></li>
+        <li>Queue depth <strong>{{ worker_status.queue_depth }}</strong></li>
+        <li>Last activity <strong>{{ worker_status.last_activity_at or "n/a" }}</strong></li>
+        <li>Last cleanup <strong>{{ worker_status.last_cleanup_at or "n/a" }}</strong></li>
+      </ul>
+    </article>
+    <article class="panel panel-subtle">
+      <h3>Retention</h3>
+      <ul class="summary-list compact-list">
+        <li>Uploads <strong>{{ worker_status.retention_days.uploads }}d</strong></li>
+        <li>Workspaces <strong>{{ worker_status.retention_days.workspaces }}d</strong></li>
+        <li>Reports <strong>{{ worker_status.retention_days.reports }}d</strong></li>
+        <li>Cleanup interval <strong>{{ worker_status.cleanup_interval_seconds }}s</strong></li>
+      </ul>
+    </article>
+    <article class="panel panel-subtle">
+      <h3>Managed storage</h3>
+      <ul class="summary-list compact-list">
+        <li>Upload dirs <strong>{{ worker_status.storage_counts.upload_directories }}</strong></li>
+        <li>Workspace dirs <strong>{{ worker_status.storage_counts.workspace_directories }}</strong></li>
+        <li>Report dirs <strong>{{ worker_status.storage_counts.report_directories }}</strong></li>
+        <li>Startup cleanup <strong>{{ "yes" if worker_status.cleanup_on_startup else "no" }}</strong></li>
+      </ul>
+    </article>
+    <article class="panel panel-subtle">
+      <h3>Scanner requirements</h3>
+      <p class="help-text">{{ requirements_summary.summary_text }}</p>
+      <ul class="summary-list compact-list top-gap">
+        <li>Available <strong>{{ requirements_summary.counts.available }}</strong></li>
+        <li>Missing <strong>{{ requirements_summary.counts.missing }}</strong></li>
+        <li>Invalid paths <strong>{{ requirements_summary.counts.invalid_configured_path }}</strong></li>
+      </ul>
+      {% if requirements_summary.warnings %}
+      <details class="subtle-details top-gap">
+        <summary>Coverage impact</summary>
+        <ul class="summary-list compact-list top-gap">
+          {% for tool in requirements_summary.tools %}
+          {% if tool.status != "available" %}
+          <li>
+            <div>
+              <strong>{{ tool.label }}</strong>
+              <span class="help-text">{{ tool.status }}</span>
+            </div>
+            <span class="help-text">{{ tool.skip_reason }}</span>
+          </li>
+          {% endif %}
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+    </article>
+    <article class="panel panel-subtle">
+      <h3>AI readiness</h3>
+      <p class="help-text">{{ requirements_summary.ai.summary_text }}</p>
+      <ul class="summary-list compact-list top-gap">
+        <li>Status <strong>{{ requirements_summary.ai.status_label }}</strong></li>
+        <li>Provider <strong>{{ requirements_summary.ai.provider }}</strong></li>
+        <li>Model <strong>{{ requirements_summary.ai.model or "n/a" }}</strong></li>
+        <li>API key <strong>{{ "configured" if requirements_summary.ai.api_key_configured else "not set" }}</strong></li>
+      </ul>
+      {% if requirements_summary.ai.warnings %}
+      <details class="subtle-details top-gap">
+        <summary>AI configuration notes</summary>
+        <ul class="summary-list compact-list top-gap">
+          {% for warning in requirements_summary.ai.warnings %}
+          <li>{{ warning }}</li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
+      {% if requirements_summary.ai.show_setup_hint %}
+      <div class="ai-hint-card top-gap">
+        <p class="help-text"><strong>Setup hint:</strong> Set <code>AI_ENABLED=true</code> and configure provider, model, and base URL if you want advisory AI summaries.</p>
+        <pre class="compact-pre">AI_ENABLED=true
+AI_PROVIDER=ollama
+AI_MODEL=llama3.1:8b
+AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
+      </div>
+      {% endif %}
+    </article>
+  </div>
+
+  {% if worker_status.last_cleanup_summary %}
+  <div class="panel panel-subtle top-gap">
+    <p class="eyebrow">Cleanup</p>
+    <h3>Last cleanup summary</h3>
+    <ul class="summary-list compact-list">
+      <li>Uploads deleted <strong>{{ worker_status.last_cleanup_summary.uploads_deleted }}</strong></li>
+      <li>Workspaces deleted <strong>{{ worker_status.last_cleanup_summary.workspaces_deleted }}</strong></li>
+      <li>Reports deleted <strong>{{ worker_status.last_cleanup_summary.reports_deleted }}</strong></li>
+      <li>Errors <strong>{{ worker_status.last_cleanup_summary.errors|length }}</strong></li>
+    </ul>
+  </div>
+  {% endif %}
+</details>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Project Management</p>
+      <h2>Projects</h2>
+    </div>
+    <span class="pill">Projects: {{ projects|length }}</span>
+  </div>
+  {% if error %}
+  <p class="error-banner">{{ error }}</p>
+  {% endif %}
+  {% if can_manage_projects %}
+  <form method="post" action="/projects" class="stack">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label>
+      Project name
+      <input type="text" name="name" placeholder="backend-service" required>
+    </label>
+    <label>
+      Description
+      <textarea name="description" rows="4" placeholder="Internal API service"></textarea>
+    </label>
+    <button type="submit">Create project</button>
+  </form>
+  {% else %}
+  <p class="help-text">Your current role can view projects but cannot create or edit them.</p>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <h3>Project list</h3>
+  <div class="table-shell">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+          <th>Scans</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for project in projects %}
+        <tr>
+          <td><a href="/projects/{{ project.id }}">{{ project.name }}</a></td>
+          <td>{{ project.description or "n/a" }}</td>
+          <td>{{ project_scan_counts.get(project.id, 0) }}</td>
+          <td>{{ project.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4">No projects have been created yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

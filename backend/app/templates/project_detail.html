@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel hero-card hero-card-primary">
+  <div class="panel-header">
+    <div class="hero-copy">
+      <p class="eyebrow">Project Detail</p>
+      <h2>{{ project.name }}</h2>
+      <p class="hero-text">{{ project.description or "This project groups related scans, policy settings, and trend history in one place." }}</p>
+    </div>
+    <div class="result-badge-cluster">
+      <span class="pill">Scans {{ scans|length }}</span>
+      <span class="pill">Policy {{ effective_policy.preset or "default" }}</span>
+    </div>
+  </div>
+  {% if error %}
+  <p class="error-banner">{{ error }}</p>
+  {% endif %}
+  <div class="metric-grid">
+    <article class="metric-card">
+      <span class="metric-label">Total scans</span>
+      <strong class="metric-value">{{ scans|length }}</strong>
+      <p class="help-text">Historical reviews linked to this project.</p>
+    </article>
+    <article class="metric-card">
+      <span class="metric-label">Latest policy status</span>
+      <strong class="metric-value">{{ trend_summary.latest_policy_status or "n/a" }}</strong>
+      <p class="help-text">Derived from the most recent scan policy decision.</p>
+    </article>
+    <article class="metric-card">
+      <span class="metric-label">Latest weighted risk</span>
+      <strong class="metric-value">{{ trend_summary.latest_weighted_risk_score if trend_summary.latest_weighted_risk_score is not none else "n/a" }}</strong>
+      <p class="help-text">A simple severity-weighted trend signal.</p>
+    </article>
+    <article class="metric-card">
+      <span class="metric-label">Comparison points</span>
+      <strong class="metric-value">{{ trend_summary.comparison_points }}</strong>
+      <p class="help-text">Scans with enough prior history to compare against.</p>
+    </article>
+  </div>
+</section>
+
+<section class="section-grid">
+  <article class="panel">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Policy</p>
+      <h3>Effective project policy</h3>
+      <p class="help-text">This is the actual rule set used when evaluating scans for this project.</p>
+    </div>
+    <span class="pill">Source: {{ effective_policy.source }}</span>
+  </div>
+  <div class="pill-row">
+    <span class="pill">Preset: {{ effective_policy.preset or "global default" }}</span>
+    <span class="pill">Fail threshold: {{ effective_policy.fail_severity_threshold }}</span>
+    <span class="pill">New high max: {{ effective_policy.max_new_high_findings }}</span>
+    <span class="pill">Risk delta max: {{ effective_policy.max_weighted_risk_delta }}</span>
+    <span class="pill">Warn partial: {{ "yes" if effective_policy.warn_on_partial_scan else "no" }}</span>
+    <span class="pill">Warn high: {{ "yes" if effective_policy.warn_on_any_high_findings else "no" }}</span>
+  </div>
+  {% if effective_policy.overrides %}
+  <p class="help-text">Overrides: {{ effective_policy.overrides }}</p>
+  {% endif %}
+  </article>
+
+  <article class="panel">
+    <div class="panel-header">
+      <div>
+        <p class="eyebrow">Trend Summary</p>
+        <h3>Risk over time</h3>
+        <p class="help-text">Use this to spot whether risk is rising, staying flat, or trending down across the project history.</p>
+      </div>
+      <span class="pill">Trend points: {{ trend_summary.total_scans }}</span>
+    </div>
+    {% if trend_summary.message %}
+    <p class="help-text">{{ trend_summary.message }}</p>
+    {% endif %}
+    <div class="pill-row">
+      <span class="pill">Latest risk: {{ trend_summary.latest_weighted_risk_score if trend_summary.latest_weighted_risk_score is not none else "n/a" }}</span>
+      <span class="pill">Latest policy: {{ trend_summary.latest_policy_status or "n/a" }}</span>
+      <span class="pill">Comparison points: {{ trend_summary.comparison_points }}</span>
+      <span class="pill">Policy fail: {{ trend_summary.policy_counts.get("fail", 0) }}</span>
+      <span class="pill">Policy warn: {{ trend_summary.policy_counts.get("warn", 0) }}</span>
+    </div>
+    <div class="table-shell top-gap">
+      <table class="readable-table">
+        <thead>
+          <tr>
+            <th>Scan</th>
+            <th>Status</th>
+            <th>Critical</th>
+            <th>High</th>
+            <th>Risk</th>
+            <th>Policy</th>
+            <th>New</th>
+            <th>Resolved</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for point in trend_summary.points|reverse %}
+          <tr>
+            <td><a href="/scans/{{ point.scan_id }}">{{ point.source_label or point.scan_id }}</a><br><span class="help-text">{{ point.created_at or "n/a" }}</span></td>
+            <td><span class="status status-{{ point.status }}">{{ point.status }}</span></td>
+            <td>{{ point.severity_counts.get("critical", 0) }}</td>
+            <td>{{ point.severity_counts.get("high", 0) }}</td>
+            <td>{{ point.weighted_risk_score }}</td>
+            <td><span class="status status-{{ point.policy_status }}">{{ point.policy_status }}</span></td>
+            <td>{% if point.comparison_available %}{{ point.new_group_count }}{% else %}n/a{% endif %}</td>
+            <td>{% if point.comparison_available %}{{ point.resolved_group_count }}{% else %}n/a{% endif %}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8">No trend data available yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Recent scans</p>
+      <h3>Latest scan history</h3>
+      <p class="help-text">Open a scan for the grouped findings view, policy summary, and downloadable reports.</p>
+    </div>
+  </div>
+  <div class="table-shell">
+    <table class="readable-table">
+      <thead>
+        <tr>
+          <th>Scan result</th>
+          <th>Source</th>
+          <th>Findings</th>
+          <th>Activity</th>
+          <th>Compare</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for scan in scans %}
+        <tr>
+          <td><a href="/scans/{{ scan.id }}"><span class="status status-{{ scan.status }}">{{ scan.status }}</span></a></td>
+          <td>{{ scan.source_type }}{% if scan.source_label %}<br><span class="help-text">{{ scan.source_label }}</span>{% endif %}</td>
+          <td>{{ scan.total_findings }}</td>
+          <td>
+            <span class="help-text">Queued {{ scan.queued_at.strftime("%Y-%m-%d %H:%M UTC") if scan.queued_at else "n/a" }}</span><br>
+            <span class="help-text">Created {{ scan.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</span>
+          </td>
+          <td>
+            {% if comparison_targets.get(scan.id) %}
+            <a href="/scans/{{ scan.id }}?compare_to={{ comparison_targets.get(scan.id) }}">Compare to previous</a>
+            {% else %}
+            <span class="help-text">No older scan</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">No scans for this project yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<details class="subtle-details panel">
+  <summary>Project settings and policy management</summary>
+  {% if can_manage_projects %}
+  <div class="stack top-gap">
+    <section class="panel panel-subtle">
+      <h3>Edit project details</h3>
+      <form method="post" action="/projects/{{ project.id }}" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>
+          Project name
+          <input type="text" name="name" value="{{ project.name }}" required>
+        </label>
+        <label>
+          Description
+          <textarea name="description" rows="4">{{ project.description or "" }}</textarea>
+        </label>
+        <button type="submit">Save project</button>
+      </form>
+    </section>
+
+    <section class="panel panel-subtle">
+      <h3>Edit policy settings</h3>
+      <form method="post" action="/projects/{{ project.id }}/policy" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label>
+          Policy preset
+          <select name="policy_preset">
+            <option value="" {% if not project.policy_preset %}selected{% endif %}>Global default</option>
+            {% for preset_name in policy_preset_options %}
+            <option value="{{ preset_name }}" {% if project.policy_preset == preset_name %}selected{% endif %}>{{ preset_name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Fail severity threshold override
+          <select name="policy_fail_severity_threshold">
+            <option value="" {% if not project.policy_fail_severity_threshold %}selected{% endif %}>Inherit from preset/default</option>
+            {% for severity_name in policy_severity_options %}
+            <option value="{{ severity_name }}" {% if project.policy_fail_severity_threshold == severity_name %}selected{% endif %}>{{ severity_name }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label>
+          Max new high findings override
+          <input type="number" min="0" name="policy_max_new_high_findings" value="{{ project.policy_max_new_high_findings if project.policy_max_new_high_findings is not none else '' }}" placeholder="inherit">
+        </label>
+        <label>
+          Max weighted risk delta override
+          <input type="number" min="0" name="policy_max_weighted_risk_delta" value="{{ project.policy_max_weighted_risk_delta if project.policy_max_weighted_risk_delta is not none else '' }}" placeholder="inherit">
+        </label>
+        <label>
+          Warn on partial scan override
+          <select name="policy_warn_on_partial_scan">
+            <option value="" {% if project.policy_warn_on_partial_scan is none %}selected{% endif %}>Inherit from preset/default</option>
+            <option value="true" {% if project.policy_warn_on_partial_scan is sameas true %}selected{% endif %}>true</option>
+            <option value="false" {% if project.policy_warn_on_partial_scan is sameas false %}selected{% endif %}>false</option>
+          </select>
+        </label>
+        <label>
+          Warn on any high findings override
+          <select name="policy_warn_on_any_high_findings">
+            <option value="" {% if project.policy_warn_on_any_high_findings is none %}selected{% endif %}>Inherit from preset/default</option>
+            <option value="true" {% if project.policy_warn_on_any_high_findings is sameas true %}selected{% endif %}>true</option>
+            <option value="false" {% if project.policy_warn_on_any_high_findings is sameas false %}selected{% endif %}>false</option>
+          </select>
+        </label>
+        <button type="submit">Save policy</button>
+      </form>
+    </section>
+  </div>
+  {% else %}
+  <p class="help-text top-gap">Only admins can change project settings or policy configuration.</p>
+  {% endif %}
+</details>
+{% endblock %}

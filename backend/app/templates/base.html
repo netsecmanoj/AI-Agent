@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% if auto_refresh_seconds %}
+    <meta http-equiv="refresh" content="{{ auto_refresh_seconds }}">
+    {% endif %}
+    <title>{{ title or "Internal Security Audit Platform" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand-block">
+        <p class="eyebrow">Self-hosted code and config security auditing</p>
+        <h1><a href="/">Internal Security Audit Platform</a></h1>
+        <p class="site-subtitle">Shared scanning, clear summaries, and auditable results for internal engineering teams.</p>
+      </div>
+      <nav class="site-nav">
+        {% if current_user %}
+        <a href="/">Dashboard</a>
+        <a href="/projects">Projects</a>
+        {% if current_user.role == "admin" %}
+        <a href="/admin/users">Users</a>
+        {% endif %}
+        {% endif %}
+        <a href="/health">Health</a>
+        {% if current_user %}
+        <span class="nav-user">{{ current_user.display_name or current_user.username }} · {{ current_user.role }}</span>
+        <form method="post" action="/logout" class="nav-inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="link-button">Logout</button>
+        </form>
+        {% else %}
+        <a href="/login">Login</a>
+        {% endif %}
+      </nav>
+    </header>
+    <main class="page-shell">
+      {% block content %}{% endblock %}
+    </main>
+  </body>
+</html>

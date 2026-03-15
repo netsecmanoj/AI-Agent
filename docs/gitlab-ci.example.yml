@@ -1,0 +1,77 @@
+stages:
+  - security-audit
+
+variables:
+  AUDIT_PLATFORM_URL: "http://security-audit.internal:8000"
+  AUDIT_FAIL_SEVERITY: "${CI_DEFAULT_FAIL_SEVERITY}"
+
+security_audit:
+  stage: security-audit
+  image: python:3.12-slim
+  before_script:
+    - python -m pip install --no-cache-dir requests
+  script:
+    - python - <<'PY'
+from pathlib import Path
+import json
+import os
+import time
+import zipfile
+
+import requests
+
+base_url = os.environ["AUDIT_PLATFORM_URL"].rstrip("/")
+token = os.environ["AUDIT_API_TOKEN"]
+fail_threshold = os.environ.get("AUDIT_FAIL_SEVERITY", "").strip().lower()
+headers = {"Authorization": f"Bearer {token}"}
+
+archive_path = Path("repo.zip")
+with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as archive:
+    for path in Path(".").rglob("*"):
+        if path.is_file() and ".git" not in path.parts:
+            archive.write(path, path.as_posix())
+
+with archive_path.open("rb") as archive_file:
+    response = requests.post(
+        f"{base_url}/api/v1/scans",
+        headers=headers,
+        files={"archive_file": ("repo.zip", archive_file, "application/zip")},
+        data={
+            "project_name": os.environ.get("CI_PROJECT_PATH", "gitlab-project"),
+            "source_label": os.environ.get("CI_COMMIT_REF_NAME", "gitlab"),
+        },
+        timeout=60,
+    )
+response.raise_for_status()
+scan = response.json()["scan"]
+scan_id = scan["scan_id"]
+
+while True:
+    status_response = requests.get(
+        f"{base_url}/api/v1/scans/{scan_id}/status",
+        headers=headers,
+        timeout=30,
+    )
+    status_response.raise_for_status()
+    current = status_response.json()["scan"]
+    if current["status"] not in {"queued", "running"}:
+        break
+    time.sleep(5)
+
+print(json.dumps(current, indent=2))
+
+if fail_threshold:
+    ordered = ["critical", "high", "medium", "low", "info", "unknown"]
+    if fail_threshold not in ordered:
+        raise SystemExit(f"Unsupported AUDIT_FAIL_SEVERITY: {fail_threshold}")
+    fail_index = ordered.index(fail_threshold)
+    for severity in ordered[: fail_index + 1]:
+        if current["severity_counts"].get(severity, 0) > 0:
+            raise SystemExit(
+                f"Security audit failed: found {current['severity_counts'][severity]} {severity} findings"
+            )
+PY
+  artifacts:
+    when: always
+    paths:
+      - repo.zip

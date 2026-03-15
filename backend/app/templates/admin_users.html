@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Admin</p>
+      <h2>User access</h2>
+    </div>
+    <span class="pill">Users: {{ users|length }}</span>
+  </div>
+  {% if error %}
+  <p class="error-banner">{{ error }}</p>
+  {% endif %}
+  <div class="table-shell">
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Display</th>
+          <th>Email</th>
+          <th>Provider</th>
+          <th>Role</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td>{{ user.username }}</td>
+          <td>{{ user.display_name or "n/a" }}</td>
+          <td>{{ user.email or "n/a" }}</td>
+          <td>{{ user.auth_provider }}</td>
+          <td>
+            <form method="post" action="/admin/users/{{ user.id }}/role" class="inline-form">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <select name="role">
+                {% for role_name in available_roles %}
+                <option value="{{ role_name }}" {% if user.role == role_name %}selected{% endif %}>{{ role_name }}</option>
+                {% endfor %}
+              </select>
+              <button type="submit">Save</button>
+            </form>
+          </td>
+          <td>{{ user.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">No users available.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

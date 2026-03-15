@@ -58,6 +58,19 @@ def main() -> int:
             for warning in summary["warnings"]:
                 print(f"- {warning}")
 
+        print()
+        print("AI readiness")
+        print("------------")
+        print(f"Status: {summary['ai']['status_label']}")
+        print(f"Provider: {summary['ai']['provider']}")
+        print(f"Model: {summary['ai']['model'] or 'n/a'}")
+        print(summary["ai"]["summary_text"])
+        if summary["ai"]["warnings"]:
+            for warning in summary["ai"]["warnings"]:
+                print(f"- {warning}")
+        if summary["ai"]["show_setup_hint"]:
+            print(summary["ai"]["setup_hint"])
+
     has_issues = not summary["all_available"]
     if args.strict and has_issues:
         return 1

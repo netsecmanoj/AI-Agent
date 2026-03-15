@@ -148,6 +148,8 @@ def test_build_ai_status_summary_covers_disabled_and_completed_states() -> None:
     assert disabled_summary["status"] == "disabled"
     assert disabled_summary["status_label"] == "Disabled"
     assert disabled_summary["active_for_scan"] is False
+    assert disabled_summary["show_setup_hint"] is True
+    assert "AI_ENABLED=true" in disabled_summary["setup_examples"]["ollama"]["snippet"]
 
     completed_scan = ScanJob(
         project_id="project-1",

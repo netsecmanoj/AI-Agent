@@ -290,12 +290,15 @@
     </article>
     <article class="panel panel-subtle">
       <h3>AI readiness</h3>
+      <div class="finding-meta compact-meta">
+        <span class="status status-{{ requirements_summary.ai.status_tone }}">{{ requirements_summary.ai.status_label }}</span>
+        <span class="pill">Provider {{ requirements_summary.ai.provider }}</span>
+        <span class="pill">Model {{ requirements_summary.ai.model or "n/a" }}</span>
+      </div>
       <p class="help-text">{{ requirements_summary.ai.summary_text }}</p>
       <ul class="summary-list compact-list top-gap">
-        <li>Status <strong>{{ requirements_summary.ai.status_label }}</strong></li>
-        <li>Provider <strong>{{ requirements_summary.ai.provider }}</strong></li>
-        <li>Model <strong>{{ requirements_summary.ai.model or "n/a" }}</strong></li>
         <li>API key <strong>{{ "configured" if requirements_summary.ai.api_key_configured else "not set" }}</strong></li>
+        <li>Base URL <strong>{{ requirements_summary.ai.base_url or "n/a" }}</strong></li>
       </ul>
       {% if requirements_summary.ai.warnings %}
       <details class="subtle-details top-gap">
@@ -309,11 +312,24 @@
       {% endif %}
       {% if requirements_summary.ai.show_setup_hint %}
       <div class="ai-hint-card top-gap">
-        <p class="help-text"><strong>Setup hint:</strong> Set <code>AI_ENABLED=true</code> and configure provider, model, and base URL if you want advisory AI summaries.</p>
-        <pre class="compact-pre">AI_ENABLED=true
-AI_PROVIDER=ollama
-AI_MODEL=llama3.1:8b
-AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
+        <p class="help-text"><strong>Setup hint:</strong> {{ requirements_summary.ai.setup_hint }}</p>
+        <details class="subtle-details compact-details operator-hint">
+          <summary>Example AI env snippets</summary>
+          <div class="stack top-gap">
+            <div>
+              <p class="help-text"><strong>{{ requirements_summary.ai.examples.disabled.label }}</strong></p>
+              <pre class="compact-pre">{{ requirements_summary.ai.examples.disabled.snippet }}</pre>
+            </div>
+            <div>
+              <p class="help-text"><strong>{{ requirements_summary.ai.examples.ollama.label }}</strong></p>
+              <pre class="compact-pre">{{ requirements_summary.ai.examples.ollama.snippet }}</pre>
+            </div>
+            <div>
+              <p class="help-text"><strong>{{ requirements_summary.ai.examples.openai_compatible.label }}</strong></p>
+              <pre class="compact-pre">{{ requirements_summary.ai.examples.openai_compatible.snippet }}</pre>
+            </div>
+          </div>
+        </details>
       </div>
       {% endif %}
     </article>

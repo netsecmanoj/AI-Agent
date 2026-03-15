@@ -180,7 +180,11 @@ The `ai` section includes:
 
 - `status`
 - `status_label`
+- `status_tone`
 - `enabled`
+- `show_setup_hint`
+- `setup_hint`
+- `examples`
 - `provider`
 - `model`
 - `base_url`

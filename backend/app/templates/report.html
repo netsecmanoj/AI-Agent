@@ -170,6 +170,12 @@
         border-bottom: 1px solid rgba(221, 211, 196, 0.85);
       }
 
+      .list li > span,
+      .list li > div {
+        min-width: 0;
+        flex: 1;
+      }
+
       .list li:last-child {
         border-bottom: none;
       }
@@ -195,6 +201,58 @@
         margin-bottom: 10px;
       }
 
+      .compact-meta {
+        margin-bottom: 6px;
+      }
+
+      .card-kicker,
+      .path-help {
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .card-kicker {
+        margin: 0 0 8px;
+      }
+
+      .truncate-path,
+      .summary-path-link {
+        display: inline-block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        vertical-align: bottom;
+      }
+
+      .summary-path-link {
+        width: 100%;
+      }
+
+      .compact-details {
+        border: 1px solid rgba(221, 211, 196, 0.92);
+        border-radius: 14px;
+        background: rgba(246, 240, 231, 0.72);
+        padding: 12px 14px;
+        margin-top: 12px;
+      }
+
+      .compact-details summary {
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .hotspot-columns {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+
+      .hotspot-count {
+        min-width: 76px;
+        text-align: right;
+      }
+
       .subtle {
         background: rgba(246, 240, 231, 0.9);
       }
@@ -213,6 +271,10 @@
 
       @media (max-width: 820px) {
         .hero-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .hotspot-columns {
           grid-template-columns: 1fr;
         }
 
@@ -317,21 +379,45 @@
             <h3>Hotspot files</h3>
             <ul class="list">
               {% for item in scan.remediation_summary.hotspot_files %}
-              <li><span><a href="#grouped-findings">{{ item.label }}</a></span><strong>{{ item.count }}</strong></li>
+              {% if loop.index <= 5 %}
+              <li><span><a class="summary-path-link" title="{{ item.label }}" href="#grouped-findings">{{ item.label }}</a></span><strong class="hotspot-count">{{ item.count }}</strong></li>
+              {% endif %}
               {% else %}
               <li><span>No hotspot files recorded.</span><strong></strong></li>
               {% endfor %}
             </ul>
+            {% if scan.remediation_summary.hotspot_files|length > 5 %}
+            <details class="compact-details">
+              <summary>Show more files ({{ scan.remediation_summary.hotspot_files|length - 5 }})</summary>
+              <ul class="list" style="margin-top: 12px;">
+                {% for item in scan.remediation_summary.hotspot_files[5:] %}
+                <li><span><a class="summary-path-link" title="{{ item.label }}" href="#grouped-findings">{{ item.label }}</a></span><strong class="hotspot-count">{{ item.count }}</strong></li>
+                {% endfor %}
+              </ul>
+            </details>
+            {% endif %}
           </article>
           <article class="panel subtle">
             <h3>Hotspot modules</h3>
             <ul class="list">
               {% for item in scan.remediation_summary.hotspot_modules %}
-              <li><span><a href="#grouped-findings">{{ item.label }}</a></span><strong>{{ item.count }}</strong></li>
+              {% if loop.index <= 5 %}
+              <li><span><a class="summary-path-link" title="{{ item.label }}" href="#grouped-findings">{{ item.label }}</a></span><strong class="hotspot-count">{{ item.count }}</strong></li>
+              {% endif %}
               {% else %}
               <li><span>No hotspot modules recorded.</span><strong></strong></li>
               {% endfor %}
             </ul>
+            {% if scan.remediation_summary.hotspot_modules|length > 5 %}
+            <details class="compact-details">
+              <summary>Show more modules ({{ scan.remediation_summary.hotspot_modules|length - 5 }})</summary>
+              <ul class="list" style="margin-top: 12px;">
+                {% for item in scan.remediation_summary.hotspot_modules[5:] %}
+                <li><span><a class="summary-path-link" title="{{ item.label }}" href="#grouped-findings">{{ item.label }}</a></span><strong class="hotspot-count">{{ item.count }}</strong></li>
+                {% endfor %}
+              </ul>
+            </details>
+            {% endif %}
           </article>
           <article class="panel subtle">
             <h3>Comparison snapshot</h3>
@@ -356,34 +442,38 @@
           <ul class="finding-list">
             {% for pattern in scan.triage_summary.common_patterns %}
             <li id="{{ pattern.anchor_id }}">
-              <div class="finding-meta">
+              <div class="finding-meta compact-meta">
                 <span class="status status-{{ pattern.highest_severity }}">{{ pattern.highest_severity }}</span>
-                <span class="pill">{{ pattern.finding_type }}</span>
-                <span class="pill">security: {{ pattern.security_relevance }}</span>
-                <span class="pill">{{ pattern.total_occurrence_count }} occurrence(s)</span>
-                <span class="pill">{{ pattern.grouped_finding_count }} grouped finding(s)</span>
+                <span class="pill">{{ "Direct security" if pattern.security_relevance == "direct" else pattern.security_relevance | replace("_", " ") }}</span>
               </div>
               <h3 class="finding-title">{{ pattern.pattern_name }}</h3>
+              <p class="card-kicker">{{ pattern.finding_type | replace("_", " ") }} · {{ pattern.total_occurrence_count }} hits · {{ pattern.files_affected_count }} files · {{ pattern.grouped_finding_count }} grouped findings</p>
               <p>{{ pattern.representative_explanation }}</p>
-              <p><strong>Likely impact:</strong> {{ pattern.likely_impact_type }}</p>
+              <p><strong>Likely impact:</strong> {{ pattern.likely_impact_type | replace("_", " ") }}</p>
               <p><strong>Recommended action:</strong> {{ pattern.representative_recommendation }}</p>
               <p><a href="#grouped-findings">View related grouped findings</a></p>
               {% if pattern.fix_one_remove_many_hint %}
               <p><strong>Fix one, remove many:</strong> {{ pattern.fix_one_remove_many_hint }}</p>
               {% endif %}
               {% if pattern.top_affected_files %}
-              <p class="help-text">Top files:
-                {% for file in pattern.top_affected_files %}
-                {{ file.file_path }} ({{ file.count }}){% if not loop.last %}, {% endif %}
-                {% endfor %}
-              </p>
+              <details class="compact-details">
+                <summary>Top affected files</summary>
+                <ul class="list" style="margin-top: 12px;">
+                  {% for file in pattern.top_affected_files %}
+                  <li><span class="truncate-path" title="{{ file.file_path }}">{{ file.file_path }}</span><strong>{{ file.count }}</strong></li>
+                  {% endfor %}
+                </ul>
+              </details>
               {% endif %}
               {% if pattern.underlying_groups %}
-              <ul class="list" style="margin-top: 12px;">
-                {% for group in pattern.underlying_groups %}
-                <li><span><a href="#{{ group.anchor_id }}">{{ group.title }}</a></span><strong>{{ group.member_count }}</strong></li>
-                {% endfor %}
-              </ul>
+              <details class="compact-details">
+                <summary>Underlying grouped findings ({{ pattern.underlying_groups|length }})</summary>
+                <ul class="list" style="margin-top: 12px;">
+                  {% for group in pattern.underlying_groups %}
+                  <li><span><a class="summary-path-link" title="{{ group.title }}" href="#{{ group.anchor_id }}">{{ group.title }}</a></span><strong>{{ group.member_count }}</strong></li>
+                  {% endfor %}
+                </ul>
+              </details>
               {% endif %}
             </li>
             {% else %}
@@ -398,13 +488,12 @@
           <ul class="finding-list">
             {% for group in scan.triage_summary.rare_but_important %}
             <li>
-              <div class="finding-meta">
+              <div class="finding-meta compact-meta">
                 <span class="status status-{{ group.severity }}">{{ group.severity }}</span>
-                <span class="pill">{{ group.finding_type }}</span>
-                <span class="pill">security: {{ group.security_relevance }}</span>
-                <span class="pill">{{ group.member_count }} occurrence(s)</span>
+                <span class="pill">Direct security</span>
               </div>
               <h3 class="finding-title"><a href="#{{ group.anchor_id }}">{{ group.title }}</a></h3>
+              <p class="card-kicker">{{ group.finding_type | replace("_", " ") }} · {{ group.member_count }} occurrence(s)</p>
               <p>{{ group.plain_explanation }}</p>
               <p><strong>Application impact:</strong> {{ group.app_impact }}</p>
             </li>
@@ -419,24 +508,44 @@
         <article class="panel">
           <p class="eyebrow">Hotspots</p>
           <h2>Files with the highest finding concentration</h2>
-          <ul class="list">
-            {% for hotspot in scan.triage_summary.hotspots.files %}
-            <li><span><a href="#grouped-findings">{{ hotspot.path }}</a></span><strong>{{ hotspot.count }} total · {{ hotspot.direct_security_count }} direct security</strong></li>
-            {% else %}
-            <li><span>No file hotspots available.</span><strong></strong></li>
-            {% endfor %}
-          </ul>
-        </article>
-        <article class="panel">
-          <p class="eyebrow">Hotspots</p>
-          <h2>Modules with the highest finding concentration</h2>
-          <ul class="list">
-            {% for hotspot in scan.triage_summary.hotspots.modules %}
-            <li><span><a href="#grouped-findings">{{ hotspot.path }}</a></span><strong>{{ hotspot.count }} total · {{ hotspot.direct_security_count }} direct security</strong></li>
-            {% else %}
-            <li><span>No module hotspots available.</span><strong></strong></li>
-            {% endfor %}
-          </ul>
+          <div class="hotspot-columns">
+            <section>
+              <h3>Files</h3>
+              <ul class="list">
+                {% for hotspot in scan.triage_summary.hotspots.files %}
+                {% if loop.index <= 5 %}
+                <li>
+                  <span>
+                    <a class="summary-path-link" title="{{ hotspot.path }}" href="#grouped-findings">{{ hotspot.path }}</a>
+                    <span class="path-help">{{ hotspot.direct_security_count }} direct-security finding(s)</span>
+                  </span>
+                  <strong class="hotspot-count">{{ hotspot.count }}</strong>
+                </li>
+                {% endif %}
+                {% else %}
+                <li><span>No file hotspots available.</span><strong></strong></li>
+                {% endfor %}
+              </ul>
+            </section>
+            <section>
+              <h3>Modules</h3>
+              <ul class="list">
+                {% for hotspot in scan.triage_summary.hotspots.modules %}
+                {% if loop.index <= 5 %}
+                <li>
+                  <span>
+                    <a class="summary-path-link" title="{{ hotspot.path }}" href="#grouped-findings">{{ hotspot.path }}</a>
+                    <span class="path-help">{{ hotspot.direct_security_count }} direct-security finding(s)</span>
+                  </span>
+                  <strong class="hotspot-count">{{ hotspot.count }}</strong>
+                </li>
+                {% endif %}
+                {% else %}
+                <li><span>No module hotspots available.</span><strong></strong></li>
+                {% endfor %}
+              </ul>
+            </section>
+          </div>
         </article>
       </section>
 
@@ -491,6 +600,21 @@
           <p>{{ scan.ai_summary or scan.ai_status_summary.summary_text }}</p>
           {% if scan.ai_status_summary.error_message %}
           <p class="help-text">{{ scan.ai_status_summary.error_message }}</p>
+          {% endif %}
+          {% if scan.ai_status_summary.show_setup_hint %}
+          <details class="compact-details">
+            <summary>Example AI env snippets</summary>
+            <div class="section-grid" style="margin-top: 12px;">
+              <article>
+                <p class="help-text"><strong>{{ scan.ai_status_summary.setup_examples.disabled.label }}</strong></p>
+                <pre>{{ scan.ai_status_summary.setup_examples.disabled.snippet }}</pre>
+              </article>
+              <article>
+                <p class="help-text"><strong>{{ scan.ai_status_summary.setup_examples.ollama.label }}</strong></p>
+                <pre>{{ scan.ai_status_summary.setup_examples.ollama.snippet }}</pre>
+              </article>
+            </div>
+          </details>
           {% endif %}
           {% if scan.ai_status_summary.readiness_warnings %}
           <ul class="list" style="margin-top: 12px;">
@@ -561,14 +685,12 @@
         <ul class="finding-list">
           {% for group in scan.grouped_findings %}
           <li id="{{ group.anchor_id }}">
-            <div class="finding-meta">
+            <div class="finding-meta compact-meta">
               <span class="status status-{{ group.severity }}">{{ group.severity }}</span>
-              <span class="pill">{{ group.tool_name }}</span>
-              <span class="pill">{{ group.finding_type }}</span>
-              <span class="pill">security: {{ group.security_relevance }}</span>
-              <span class="pill">{{ group.member_count }} occurrence(s)</span>
+              <span class="pill">{{ "Direct security" if group.security_relevance == "direct" else group.security_relevance | replace("_", " ") }}</span>
             </div>
             <h3 class="finding-title">{{ group.title }}</h3>
+            <p class="card-kicker">{{ group.finding_type | replace("_", " ") }} · {{ group.member_count }} occurrence(s){% if group.tool_name %} · {{ group.tool_name }}{% endif %}</p>
             <p>{{ group.plain_explanation }}</p>
             <p><strong>Why it was flagged:</strong> {{ group.why_flagged }}</p>
             <p><strong>Application impact:</strong> {{ group.app_impact }}</p>

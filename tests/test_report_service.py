@@ -230,6 +230,7 @@ def test_build_scan_context_includes_grouped_and_metadata_fields(tmp_path) -> No
     assert context["ai_summary_block"]["management_summary"] == "Management summary text."
     assert context["ai_status_summary"]["status"] == "completed"
     assert context["ai_status_summary"]["status_label"] == "Completed"
+    assert "AI_ENABLED=true" in context["ai_status_summary"]["setup_examples"]["ollama"]["snippet"]
     assert context["findings"][0]["ai_explanation"] == "AI explains the dependency issue."
     assert context["findings"][1]["ai_error"] == "AI provider timeout."
     assert context["findings"][1]["ai_error_summary"] == (

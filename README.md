@@ -273,6 +273,7 @@ The preflight checker reports:
 - missing tools
 - invalid configured paths
 - which scanner coverage will be skipped or become partial
+- AI readiness state and configuration warnings
 
 Manual usage:
 
@@ -283,6 +284,12 @@ python scripts/check_requirements.py --strict
 ```
 
 `--strict` exits with a non-zero status if any configured scanner tool is missing or invalid. The app itself still starts even when some tools are unavailable.
+
+The same information is also visible:
+
+- on the dashboard in the operator panels
+- through `GET /api/v1/requirements/status`
+- at startup logs, where scanner-tool warnings and AI readiness are emitted
 
 ### Starting the app locally
 
@@ -321,6 +328,58 @@ That keeps the default deployment image smaller and avoids bundling a heavy mobi
 - optional in container mode
 - visible as missing coverage through the preflight summary and scan tool-coverage issues
 
+### Ubuntu EC2 or host-mode deployment
+
+Use host mode when you want the broadest scanner coverage or need explicit control over command paths.
+
+Fast path:
+
+```bash
+git clone https://github.com/netsecmanoj/AI-Agent.git /opt/internal-security-audit
+cd /opt/internal-security-audit
+sudo ./scripts/setup_ubuntu.sh --with-nginx
+cp .env.example .env
+```
+
+The Ubuntu setup script installs:
+
+- `python3`
+- `python3-venv`
+- `python3-pip`
+- `git`
+- `curl`
+- `unzip`
+- `nodejs`
+- `npm`
+- `trivy`
+- project virtualenv dependencies
+- `semgrep` in the project virtualenv
+- `pip-audit` in the project virtualenv
+
+It does not install Flutter/Dart. Those remain optional and should only be added when Flutter/Dart analysis is needed.
+
+Recommended host-mode `.env` overrides:
+
+```bash
+SEMGREP_COMMAND=/opt/internal-security-audit/.venv/bin/semgrep
+PIP_AUDIT_COMMAND=/opt/internal-security-audit/.venv/bin/pip-audit
+TRIVY_COMMAND=trivy
+NPM_COMMAND=npm
+```
+
+Optional Flutter/Dart host overrides:
+
+```bash
+FLUTTER_COMMAND=/opt/flutter/bin/flutter
+DART_COMMAND=/opt/flutter/bin/dart
+```
+
+System service and reverse proxy examples are included:
+
+- [`deploy/systemd/internal-security-audit.service`](/Users/nm/Documents/GitHub/AI-Agent/deploy/systemd/internal-security-audit.service)
+- [`deploy/nginx/internal-security-audit.conf`](/Users/nm/Documents/GitHub/AI-Agent/deploy/nginx/internal-security-audit.conf)
+- [`docs/deployment-ubuntu.md`](/Users/nm/Documents/GitHub/AI-Agent/docs/deployment-ubuntu.md)
+
 ### Host mode vs container mode
 
 - Host mode:
@@ -331,6 +390,22 @@ That keeps the default deployment image smaller and avoids bundling a heavy mobi
   - repeatable deployment with the practical baseline tools preinstalled
   - good for Semgrep, Trivy, Python dependency audit, and npm-based audit
   - Flutter/Dart remain documented and optional unless you build a custom image
+
+### Verify health and operator status
+
+```bash
+curl -fsS http://127.0.0.1:8000/health
+curl -fsS -H "Authorization: Bearer <token>" http://127.0.0.1:8000/api/v1/worker/status
+curl -fsS -H "Authorization: Bearer <token>" http://127.0.0.1:8000/api/v1/requirements/status
+```
+
+Use these checks to verify:
+
+- app health
+- background worker status
+- cleanup/retention status
+- scanner/tool availability
+- AI readiness
 
 ## Admin Bootstrap
 
@@ -494,6 +569,7 @@ The script is idempotent for new usernames and fails if the user already exists.
 ## AI Assistance
 
 - AI is optional and disabled by default.
+- AI setup is visible in the dashboard, scan detail page, startup logs, and `/api/v1/requirements/status`.
 - The worker runs AI enrichment only after scanner findings are already persisted.
 - A disabled or failed AI provider never marks the scan itself as failed.
 - The current provider abstraction supports:
@@ -551,6 +627,12 @@ AI_BASE_URL=https://api.openai.com/v1
 AI_API_KEY=replace-me
 AI_TIMEOUT_SECONDS=30
 ```
+
+AI is always advisory:
+
+- deterministic findings, grouped evidence, comparison, and policy remain authoritative
+- AI errors stay out of the main scan UI and HTML report body
+- raw AI error/debug content remains available only in JSON/debug-style outputs when present
 
 ### AI Troubleshooting
 

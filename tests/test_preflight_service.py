@@ -64,6 +64,9 @@ def test_preflight_reports_ai_disabled_intentionally(monkeypatch) -> None:
 
     assert summary["ai"]["status"] == "disabled_intentionally"
     assert summary["ai"]["status_label"] == "Disabled"
+    assert summary["ai"]["status_tone"] == "info"
+    assert summary["ai"]["show_setup_hint"] is True
+    assert "AI_ENABLED=true" in summary["ai"]["examples"]["ollama"]["snippet"]
     assert "continue to work without AI" in summary["ai"]["summary_text"]
 
 
@@ -78,6 +81,7 @@ def test_preflight_reports_ai_missing_required_values(monkeypatch) -> None:
     summary = RequirementsPreflightService(settings).build_summary()
 
     assert summary["ai"]["status"] == "missing_required_config"
+    assert summary["ai"]["status_tone"] == "partial"
     assert "AI_MODEL" in summary["ai"]["missing_fields"]
     assert "AI_BASE_URL" in summary["ai"]["missing_fields"]
     assert "AI_API_KEY" in summary["ai"]["missing_fields"]
@@ -95,4 +99,6 @@ def test_preflight_reports_ai_ready(monkeypatch) -> None:
 
     assert summary["ai"]["status"] == "ready"
     assert summary["ai"]["status_label"] == "Ready"
+    assert summary["ai"]["status_tone"] == "completed"
+    assert summary["ai"]["show_setup_hint"] is False
     assert "authoritative source of truth" in summary["ai"]["summary_text"]

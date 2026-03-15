@@ -392,8 +392,16 @@ textarea {
   flex: 1;
 }
 
+.summary-list li > strong {
+  flex: 0 0 auto;
+}
+
 .compact-list li {
   padding: 0.48rem 0;
+}
+
+.tight-list li {
+  padding: 0.35rem 0;
 }
 
 .table-shell {
@@ -453,6 +461,10 @@ td p {
   overflow-wrap: anywhere;
 }
 
+.finding-card-compact {
+  padding: 0.9rem 0.95rem;
+}
+
 .finding-meta {
   display: flex;
   gap: 0.5rem;
@@ -461,6 +473,30 @@ td p {
   margin-bottom: 0.55rem;
   color: var(--muted);
   font-size: 0.88rem;
+}
+
+.finding-meta.compact-meta {
+  gap: 0.35rem 0.55rem;
+  margin-bottom: 0.35rem;
+}
+
+.meta-line,
+.card-kicker {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.card-kicker {
+  margin-bottom: 0.42rem;
+}
+
+.meta-line {
+  margin: 0.15rem 0 0.45rem;
+}
+
+.compact-stack {
+  display: grid;
+  gap: 0.45rem;
 }
 
 .tool-group {
@@ -519,6 +555,73 @@ td p {
   max-width: min(100%, 48rem);
 }
 
+.path-text,
+.summary-path-link {
+  display: inline-block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.summary-path-link {
+  width: 100%;
+}
+
+.path-help {
+  display: block;
+  margin-top: 0.15rem;
+}
+
+.path-summary-list li {
+  align-items: center;
+}
+
+.hotspot-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.hotspot-panel {
+  min-width: 0;
+}
+
+.hotspot-list li {
+  gap: 0.7rem;
+}
+
+.hotspot-count {
+  min-width: 4.5rem;
+  text-align: right;
+}
+
+.compact-actions {
+  gap: 0.55rem;
+}
+
+.ai-status-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.8rem;
+  margin-top: 0.8rem;
+}
+
+.ai-status-card {
+  border: 1px solid rgba(159, 62, 47, 0.12);
+  background: rgba(255, 255, 255, 0.68);
+  border-radius: 16px;
+  padding: 0.8rem 0.9rem;
+}
+
+.ai-status-card strong {
+  display: block;
+  font-size: 1rem;
+}
+
 .compact-copy {
   margin-bottom: 0.4rem;
 }
@@ -546,6 +649,10 @@ td p {
 
 .operational-panel {
   background: rgba(244, 238, 229, 0.9);
+}
+
+.operator-hint {
+  margin-top: 0.75rem;
 }
 
 .error-banner {
@@ -601,6 +708,10 @@ pre {
 @media (max-width: 980px) {
   .hero-layout,
   .summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .hotspot-columns {
     grid-template-columns: 1fr;
   }
 

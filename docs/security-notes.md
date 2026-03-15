@@ -24,6 +24,7 @@
 ## Operational Guidance
 
 - Keep the service on an internal trusted network and terminate TLS at the reverse proxy.
+- For Ubuntu host deployments, use the example systemd unit and Nginx config under `deploy/` rather than exposing uvicorn directly on the public network.
 - Prefer a dedicated service account with restricted filesystem access.
 - Mount only the repositories or directories that should be scanned.
 - Do not mount directories containing sensitive host data that should never be scanned.
@@ -45,6 +46,7 @@
 - Go and .NET first-pass support in this milestone is manifest-driven and does not require `go` or `dotnet`.
 - Run a single app instance for this milestone; the in-process queue is not designed for multi-instance coordination.
 - Prefer local AI endpoints for sensitive repositories.
+- Treat host-mode absolute command paths in `.env` as deployment-specific operator settings and keep them out of version control.
 - If a remote AI provider is configured, treat normalized finding metadata as data leaving the environment.
 
 ## Upload and Extraction Protections

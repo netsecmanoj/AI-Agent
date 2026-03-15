@@ -167,6 +167,7 @@ def test_viewer_can_browse_but_cannot_submit_scans_or_access_admin(
         assert dashboard.status_code == 200
         assert 'name="source_path"' not in dashboard.text
         assert "cannot submit new scans" in dashboard.text
+        assert "AI readiness" in dashboard.text
 
         dashboard_csrf = extract_csrf_token(dashboard.text)
         create_scan = client.post(
@@ -331,8 +332,11 @@ def test_scan_detail_renders_review_tabs_and_ai_advisory_state(
     assert "AI assistance" in response.text
     assert "advisory only" in response.text
     assert "Disabled" in response.text
+    assert "Example AI env snippets" in response.text
+    assert "Only findings with AI explanation" in response.text
     assert "Show more files" in response.text
     assert "truncate-path" in response.text
+    assert "summary-path-link" in response.text
     assert 'title="lib/features/really/long/path/that/should/render/with/a/tooltip/and/not/blow/out/the/layout/theme_config.dart"' in response.text
 
 

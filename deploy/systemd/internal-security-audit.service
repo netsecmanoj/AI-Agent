@@ -1,0 +1,21 @@
+[Unit]
+Description=Internal Security Audit Platform
+After=network.target
+
+[Service]
+Type=simple
+User=audit
+Group=audit
+WorkingDirectory=/opt/internal-security-audit
+EnvironmentFile=/opt/internal-security-audit/.env
+ExecStartPre=/opt/internal-security-audit/.venv/bin/python /opt/internal-security-audit/scripts/check_requirements.py --json
+ExecStart=/opt/internal-security-audit/.venv/bin/uvicorn backend.app.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=5
+TimeoutStartSec=45
+TimeoutStopSec=30
+KillSignal=SIGINT
+SyslogIdentifier=internal-security-audit
+
+[Install]
+WantedBy=multi-user.target

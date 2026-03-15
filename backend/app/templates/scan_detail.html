@@ -145,42 +145,66 @@
       <div>
         <p class="eyebrow">AI assistance</p>
         <h3>Optional advisory explanation layer</h3>
-        <p class="help-text">AI helps with interpretation and remediation wording. Deterministic scanner output, raw evidence, and policy remain the source of truth.</p>
+        <p class="help-text">AI helps with interpretation only. Deterministic scanner output, raw evidence, and policy remain the source of truth.</p>
       </div>
       <span class="status status-{{ scan_summary.ai_status.status_tone }}">{{ scan_summary.ai_status.status_label }}</span>
     </div>
-    <div class="pill-row compact-gap">
-      <span class="pill">Readiness {{ scan_summary.ai_status.readiness_status_label }}</span>
-      <span class="pill">{{ "Active for this scan" if scan_summary.ai_status.active_for_scan else "Not active for this scan" }}</span>
-      <span class="pill">Provider {{ scan_summary.ai_status.provider }}</span>
-      <span class="pill">Model {{ scan_summary.ai_status.model or "n/a" }}</span>
+    <div class="ai-status-strip">
+      <article class="ai-status-card">
+        <span class="metric-label">Readiness</span>
+        <strong>{{ scan_summary.ai_status.readiness_status_label }}</strong>
+        <p class="help-text">{{ "Configured and ready." if scan_summary.ai_status.readiness_status == "ready" else "Needs operator attention or is intentionally off." }}</p>
+      </article>
+      <article class="ai-status-card">
+        <span class="metric-label">This scan</span>
+        <strong>{{ "Active" if scan_summary.ai_status.active_for_scan else "Inactive" }}</strong>
+        <p class="help-text">{{ scan_summary.ai_status.status_label }}</p>
+      </article>
+      <article class="ai-status-card">
+        <span class="metric-label">Provider</span>
+        <strong>{{ scan_summary.ai_status.provider }}</strong>
+        <p class="help-text">Model {{ scan_summary.ai_status.model or "n/a" }}</p>
+      </article>
+      <article class="ai-status-card">
+        <span class="metric-label">API key</span>
+        <strong>{{ "Configured" if scan_summary.ai_status.api_key_configured else "Not set" }}</strong>
+        <p class="help-text">{{ "Often blank for local Ollama." if scan_summary.ai_status.provider in ["ollama", "openai_compatible"] else "Required for secured hosted endpoints." }}</p>
+      </article>
     </div>
-    <p>{{ scan_summary.ai_status.summary_text }}</p>
+    <p class="top-gap">{{ scan_summary.ai_status.summary_text }}</p>
     {% if scan_summary.ai_status.show_setup_hint %}
     <div class="ai-hint-card top-gap">
-      <p class="help-text"><strong>Setup hint:</strong> Set <code>AI_ENABLED=true</code> and configure provider, model, and base URL to enable advisory AI summaries.</p>
-      <pre class="compact-pre">AI_ENABLED=true
-AI_PROVIDER=ollama
-AI_MODEL=llama3.1:8b
-AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
+      <p class="help-text"><strong>Setup hint:</strong> {{ scan_summary.ai_status.setup_hint }}</p>
+      <details class="subtle-details compact-details operator-hint">
+        <summary>Example AI env snippets</summary>
+        <div class="section-grid top-gap">
+          <article>
+            <p class="help-text"><strong>{{ scan_summary.ai_status.setup_examples.disabled.label }}</strong></p>
+            <pre class="compact-pre">{{ scan_summary.ai_status.setup_examples.disabled.snippet }}</pre>
+          </article>
+          <article>
+            <p class="help-text"><strong>{{ scan_summary.ai_status.setup_examples.ollama.label }}</strong></p>
+            <pre class="compact-pre">{{ scan_summary.ai_status.setup_examples.ollama.snippet }}</pre>
+          </article>
+          <article>
+            <p class="help-text"><strong>{{ scan_summary.ai_status.setup_examples.openai_compatible.label }}</strong></p>
+            <pre class="compact-pre">{{ scan_summary.ai_status.setup_examples.openai_compatible.snippet }}</pre>
+          </article>
+        </div>
+      </details>
     </div>
     {% endif %}
-    <p class="help-text">
-      Readiness: {{ scan_summary.ai_status.readiness_status_label }} ·
-      provider {{ scan_summary.ai_status.provider }} ·
-      model {{ scan_summary.ai_status.model or "n/a" }}
-    </p>
     {% if scan_summary.ai_status.readiness_warnings %}
-    <ul class="summary-list compact-list">
+    <ul class="summary-list compact-list tight-list">
       {% for warning in scan_summary.ai_status.readiness_warnings %}
       <li>{{ warning }}</li>
       {% endfor %}
     </ul>
     {% endif %}
-    <div class="pill-row top-gap">
-      <a class="button-link button-secondary" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter=&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&pattern_key={{ active_triage_filters.pattern_key }}&hotspot_file={{ active_triage_filters.hotspot_file }}&hotspot_module={{ active_triage_filters.hotspot_module }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}">All AI states</a>
-      <a class="button-link button-secondary" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter=with_ai&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&pattern_key={{ active_triage_filters.pattern_key }}&hotspot_file={{ active_triage_filters.hotspot_file }}&hotspot_module={{ active_triage_filters.hotspot_module }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}">With AI explanation</a>
-      <a class="button-link button-secondary" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter=without_ai&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&pattern_key={{ active_triage_filters.pattern_key }}&hotspot_file={{ active_triage_filters.hotspot_file }}&hotspot_module={{ active_triage_filters.hotspot_module }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}">Without AI explanation</a>
+    <div class="pill-row top-gap compact-actions">
+      <a class="button-link button-secondary" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter=&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&pattern_key={{ active_triage_filters.pattern_key }}&hotspot_file={{ active_triage_filters.hotspot_file }}&hotspot_module={{ active_triage_filters.hotspot_module }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}">All findings</a>
+      <a class="button-link button-secondary" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter=with_ai&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&pattern_key={{ active_triage_filters.pattern_key }}&hotspot_file={{ active_triage_filters.hotspot_file }}&hotspot_module={{ active_triage_filters.hotspot_module }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}">Only findings with AI explanation</a>
+      <a class="button-link button-secondary" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter=without_ai&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&pattern_key={{ active_triage_filters.pattern_key }}&hotspot_file={{ active_triage_filters.hotspot_file }}&hotspot_module={{ active_triage_filters.hotspot_module }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}">Only findings without AI explanation</a>
     </div>
   </article>
 </section>
@@ -244,17 +268,18 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
       </ul>
     </article>
   </div>
-  <div class="section-grid top-gap">
+  <div class="hotspot-columns top-gap">
     <article class="panel panel-subtle">
       <h4>Hotspot files</h4>
-      <ul class="summary-list compact-list">
+      <ul class="summary-list compact-list tight-list hotspot-list path-summary-list">
         {% for item in remediation_summary.hotspot_files %}
         {% if loop.index <= 5 %}
         <li>
           <span>
-            <a class="truncate-path" title="{{ item.label }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_file={{ item.hotspot_file }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ item.label }}</a>
+            <a class="summary-path-link" title="{{ item.label }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_file={{ item.hotspot_file }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ item.label }}</a>
+            <span class="help-text path-help">{{ item.type }} · security {{ item.security_relevance }}</span>
           </span>
-          <strong>{{ item.count }}</strong>
+          <strong class="hotspot-count">{{ item.count }}</strong>
         </li>
         {% endif %}
         {% else %}
@@ -268,9 +293,9 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
           {% for item in remediation_summary.hotspot_files[5:] %}
           <li>
             <span>
-              <a class="truncate-path" title="{{ item.label }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_file={{ item.hotspot_file }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ item.label }}</a>
+              <a class="summary-path-link" title="{{ item.label }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_file={{ item.hotspot_file }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ item.label }}</a>
             </span>
-            <strong>{{ item.count }}</strong>
+            <strong class="hotspot-count">{{ item.count }}</strong>
           </li>
           {% endfor %}
         </ul>
@@ -279,14 +304,15 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
     </article>
     <article class="panel panel-subtle">
       <h4>Hotspot modules</h4>
-      <ul class="summary-list compact-list">
+      <ul class="summary-list compact-list tight-list hotspot-list path-summary-list">
         {% for item in remediation_summary.hotspot_modules %}
         {% if loop.index <= 5 %}
         <li>
           <span>
-            <a class="truncate-path" title="{{ item.label }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_module={{ item.hotspot_module }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ item.label }}</a>
+            <a class="summary-path-link" title="{{ item.label }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_module={{ item.hotspot_module }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ item.label }}</a>
+            <span class="help-text path-help">{{ item.type }} · security {{ item.security_relevance }}</span>
           </span>
-          <strong>{{ item.count }}</strong>
+          <strong class="hotspot-count">{{ item.count }}</strong>
         </li>
         {% endif %}
         {% else %}
@@ -300,9 +326,9 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
           {% for item in remediation_summary.hotspot_modules[5:] %}
           <li>
             <span>
-              <a class="truncate-path" title="{{ item.label }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_module={{ item.hotspot_module }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ item.label }}</a>
+              <a class="summary-path-link" title="{{ item.label }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_module={{ item.hotspot_module }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ item.label }}</a>
             </span>
-            <strong>{{ item.count }}</strong>
+            <strong class="hotspot-count">{{ item.count }}</strong>
           </li>
           {% endfor %}
         </ul>
@@ -394,18 +420,17 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
   </div>
   <div class="finding-list">
     {% for pattern in triage_summary.common_patterns %}
-    <article class="finding-card finding-card-priority" id="{{ pattern.anchor_id }}">
-      <div class="finding-meta">
+    <article class="finding-card finding-card-priority finding-card-compact" id="{{ pattern.anchor_id }}">
+      <div class="finding-meta compact-meta">
         <span class="status status-{{ pattern.highest_severity }}">{{ pattern.highest_severity }}</span>
-        <span>{{ pattern.finding_type }}</span>
-        <span>{{ pattern.total_occurrence_count }} hits</span>
-        <span>{{ pattern.files_affected_count }} files</span>
+        <span class="pill">{{ "Direct security" if pattern.security_relevance == "direct" else pattern.security_relevance | replace("_", " ") }}</span>
       </div>
       <h4>{{ pattern.pattern_name }}</h4>
+      <p class="card-kicker">{{ pattern.finding_type | replace("_", " ") }} · {{ pattern.total_occurrence_count }} hits · {{ pattern.files_affected_count }} files · {{ pattern.grouped_finding_count }} grouped findings</p>
       <p>{{ pattern.representative_explanation }}</p>
-      <p class="compact-copy"><strong>Impact:</strong> {{ pattern.likely_impact_type }} · <strong>Security:</strong> {{ pattern.security_relevance }}</p>
+      <p class="compact-copy"><strong>Impact:</strong> {{ pattern.likely_impact_type | replace("_", " ") }}</p>
       <p class="compact-copy"><strong>Recommended action:</strong> {{ pattern.representative_recommendation }}</p>
-      <div class="action-row">
+      <div class="action-row compact-actions">
         <a class="button-link button-secondary" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&pattern_key={{ pattern.pattern_key }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}">View related findings</a>
         <a class="button-link button-secondary" href="/scans/{{ scan.id }}#{{ pattern.anchor_id }}">Stay on pattern</a>
       </div>
@@ -413,11 +438,17 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
       <p><strong>Fix one, remove many:</strong> {{ pattern.fix_one_remove_many_hint }}</p>
       {% endif %}
       {% if pattern.top_affected_files %}
-      <p class="help-text">Top affected files:
-        {% for file in pattern.top_affected_files %}
-        <span class="inline-path" title="{{ file.file_path }}">{{ file.file_path }}</span> ({{ file.count }}){% if not loop.last %}, {% endif %}
-        {% endfor %}
-      </p>
+      <details class="subtle-details top-gap compact-details">
+        <summary>Top affected files</summary>
+        <ul class="summary-list compact-list tight-list path-summary-list top-gap">
+          {% for file in pattern.top_affected_files %}
+          <li>
+            <span class="path-text" title="{{ file.file_path }}">{{ file.file_path }}</span>
+            <strong>{{ file.count }}</strong>
+          </li>
+          {% endfor %}
+        </ul>
+      </details>
       {% endif %}
       {% if pattern.underlying_groups %}
       <details class="subtle-details top-gap compact-details">
@@ -451,14 +482,13 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
     </div>
     <div class="finding-list">
       {% for group in triage_summary.rare_but_important %}
-      <article class="finding-card">
-        <div class="finding-meta">
+      <article class="finding-card finding-card-compact">
+        <div class="finding-meta compact-meta">
           <span class="status status-{{ group.severity }}">{{ group.severity }}</span>
-          <span>{{ group.finding_type }}</span>
-          <span>security: {{ group.security_relevance }}</span>
-          <span>{{ group.member_count }} occurrence(s)</span>
+          <span class="pill">Direct security</span>
         </div>
         <h4><a href="/scans/{{ scan.id }}#{{ group.anchor_id }}">{{ group.title }}</a></h4>
+        <p class="card-kicker">{{ group.finding_type | replace("_", " ") }} · {{ group.member_count }} occurrence(s)</p>
         <p>{{ group.plain_explanation }}</p>
         <p><strong>Application impact:</strong> {{ group.app_impact }}</p>
         <div class="action-row">
@@ -477,60 +507,74 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
         <h3>Files and modules with the most findings</h3>
       </div>
     </div>
-    <h4>Files</h4>
-    <ul class="summary-list compact-list">
-      {% for hotspot in triage_summary.hotspots.files %}
-      {% if loop.index <= 5 %}
-      <li>
-        <a class="truncate-path" title="{{ hotspot.path }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_file={{ hotspot.path }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ hotspot.path }}</a>
-        <strong>{{ hotspot.count }}</strong>
-        <span class="help-text">direct security: {{ hotspot.direct_security_count }}</span>
-      </li>
-      {% endif %}
-      {% else %}
-      <li>No file hotspots available.</li>
-      {% endfor %}
-    </ul>
-    {% if triage_summary.hotspots.files|length > 5 %}
-    <details class="subtle-details top-gap compact-details">
-      <summary>Show more files ({{ triage_summary.hotspots.files|length - 5 }})</summary>
-      <ul class="summary-list compact-list top-gap">
-        {% for hotspot in triage_summary.hotspots.files[5:] %}
-        <li>
-          <a class="truncate-path" title="{{ hotspot.path }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_file={{ hotspot.path }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ hotspot.path }}</a>
-          <strong>{{ hotspot.count }}</strong>
-        </li>
-        {% endfor %}
-      </ul>
-    </details>
-    {% endif %}
-    <h4 class="top-gap">Modules</h4>
-    <ul class="summary-list compact-list">
-      {% for hotspot in triage_summary.hotspots.modules %}
-      {% if loop.index <= 5 %}
-      <li>
-        <a class="truncate-path" title="{{ hotspot.path }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_module={{ hotspot.path }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ hotspot.path }}</a>
-        <strong>{{ hotspot.count }}</strong>
-        <span class="help-text">direct security: {{ hotspot.direct_security_count }}</span>
-      </li>
-      {% endif %}
-      {% else %}
-      <li>No module hotspots available.</li>
-      {% endfor %}
-    </ul>
-    {% if triage_summary.hotspots.modules|length > 5 %}
-    <details class="subtle-details top-gap compact-details">
-      <summary>Show more modules ({{ triage_summary.hotspots.modules|length - 5 }})</summary>
-      <ul class="summary-list compact-list top-gap">
-        {% for hotspot in triage_summary.hotspots.modules[5:] %}
-        <li>
-          <a class="truncate-path" title="{{ hotspot.path }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_module={{ hotspot.path }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ hotspot.path }}</a>
-          <strong>{{ hotspot.count }}</strong>
-        </li>
-        {% endfor %}
-      </ul>
-    </details>
-    {% endif %}
+    <div class="hotspot-columns">
+      <section class="hotspot-panel">
+        <h4>Files</h4>
+        <ul class="summary-list compact-list tight-list hotspot-list path-summary-list">
+          {% for hotspot in triage_summary.hotspots.files %}
+          {% if loop.index <= 5 %}
+          <li>
+            <span>
+              <a class="summary-path-link" title="{{ hotspot.path }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_file={{ hotspot.path }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ hotspot.path }}</a>
+              <span class="help-text path-help">{{ hotspot.direct_security_count }} direct-security finding(s)</span>
+            </span>
+            <strong class="hotspot-count">{{ hotspot.count }}</strong>
+          </li>
+          {% endif %}
+          {% else %}
+          <li>No file hotspots available.</li>
+          {% endfor %}
+        </ul>
+        {% if triage_summary.hotspots.files|length > 5 %}
+        <details class="subtle-details top-gap compact-details">
+          <summary>Show more files ({{ triage_summary.hotspots.files|length - 5 }})</summary>
+          <ul class="summary-list compact-list tight-list hotspot-list path-summary-list top-gap">
+            {% for hotspot in triage_summary.hotspots.files[5:] %}
+            <li>
+              <span>
+                <a class="summary-path-link" title="{{ hotspot.path }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_file={{ hotspot.path }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ hotspot.path }}</a>
+              </span>
+              <strong class="hotspot-count">{{ hotspot.count }}</strong>
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+      </section>
+      <section class="hotspot-panel">
+        <h4>Modules</h4>
+        <ul class="summary-list compact-list tight-list hotspot-list path-summary-list">
+          {% for hotspot in triage_summary.hotspots.modules %}
+          {% if loop.index <= 5 %}
+          <li>
+            <span>
+              <a class="summary-path-link" title="{{ hotspot.path }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_module={{ hotspot.path }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ hotspot.path }}</a>
+              <span class="help-text path-help">{{ hotspot.direct_security_count }} direct-security finding(s)</span>
+            </span>
+            <strong class="hotspot-count">{{ hotspot.count }}</strong>
+          </li>
+          {% endif %}
+          {% else %}
+          <li>No module hotspots available.</li>
+          {% endfor %}
+        </ul>
+        {% if triage_summary.hotspots.modules|length > 5 %}
+        <details class="subtle-details top-gap compact-details">
+          <summary>Show more modules ({{ triage_summary.hotspots.modules|length - 5 }})</summary>
+          <ul class="summary-list compact-list tight-list hotspot-list path-summary-list top-gap">
+            {% for hotspot in triage_summary.hotspots.modules[5:] %}
+            <li>
+              <span>
+                <a class="summary-path-link" title="{{ hotspot.path }}" href="/scans/{{ scan.id }}?review_mode={{ active_finding_filters.review_mode }}&ai_filter={{ active_finding_filters.ai_filter }}&severity={{ active_finding_filters.severity }}&tool={{ active_finding_filters.tool }}&category={{ active_finding_filters.category }}&finding_type={{ active_finding_filters.finding_type }}&hotspot_module={{ hotspot.path }}&compare_to={{ active_compare_to }}&raw_limit={{ raw_finding_pagination.limit }}#grouped-findings">{{ hotspot.path }}</a>
+              </span>
+              <strong class="hotspot-count">{{ hotspot.count }}</strong>
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+      </section>
+    </div>
   </article>
 </section>
 
@@ -545,14 +589,13 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
   </div>
   <div class="finding-list">
     {% for group in top_priority_groups %}
-    <article class="finding-card finding-card-priority">
-      <div class="finding-meta">
+    <article class="finding-card finding-card-priority finding-card-compact">
+      <div class="finding-meta compact-meta">
         <span class="status status-{{ group.severity }}">{{ group.severity }}</span>
-        <span>{{ group.finding_type }}</span>
-        <span>{{ group.member_count }} hits</span>
-        <span>{{ group.security_relevance }}</span>
+        <span class="pill">{{ "Direct security" if group.security_relevance == "direct" else group.security_relevance | replace("_", " ") }}</span>
       </div>
       <h4>{{ group.title }}</h4>
+      <p class="card-kicker">{{ group.finding_type | replace("_", " ") }} · {{ group.member_count }} hits</p>
       <p>{{ group.plain_explanation }}</p>
       <p class="compact-copy"><strong>Impact:</strong> {{ group.app_impact }}</p>
       <p class="compact-copy"><strong>Why severity:</strong> {{ group.why_severity }}</p>
@@ -785,18 +828,17 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
   </div>
   <div class="finding-list">
     {% for group in grouped_filtered_findings %}
-    <article class="finding-card" id="{{ group.anchor_id }}">
-      <div class="finding-meta">
+    <article class="finding-card finding-card-compact" id="{{ group.anchor_id }}">
+      <div class="finding-meta compact-meta">
         <span class="status status-{{ group.severity }}">{{ group.severity }}</span>
-        <span>{{ group.finding_type }}</span>
-        <span>{{ group.member_count }} hits</span>
-        <span>{{ group.security_relevance }}</span>
+        <span class="pill">{{ "Direct security" if group.security_relevance == "direct" else group.security_relevance | replace("_", " ") }}</span>
       </div>
       <h4>{{ group.title }}</h4>
+      <p class="card-kicker">{{ group.finding_type | replace("_", " ") }} · {{ group.member_count }} hits{% if group.category %} · {{ group.category }}{% endif %}</p>
       <p>{{ group.plain_explanation }}</p>
       <p class="compact-copy"><strong>Impact:</strong> {{ group.app_impact }}</p>
       <p class="compact-copy"><strong>Why severity:</strong> {{ group.why_severity }}</p>
-      <p class="help-text">Source: <span class="inline-path" title="{{ group.file_path or 'n/a' }}">{{ group.file_path or "n/a" }}</span>{% if group.tool_name %} · {{ group.tool_name }}{% endif %}{% if group.category %} · {{ group.category }}{% endif %}</p>
+      <p class="help-text">Source: <span class="inline-path" title="{{ group.file_path or 'n/a' }}">{{ group.file_path or "n/a" }}</span>{% if group.tool_name %} · {{ group.tool_name }}{% endif %}</p>
       {% if group.dependency_name %}
       <p class="help-text">Dependency: {{ group.dependency_name }}</p>
       {% endif %}
@@ -820,7 +862,7 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
           {% for member in group.sample_members %}
           <li>
             {{ member.id or "n/a" }}
-            <strong>{{ member.file_path or "n/a" }}{% if member.line_number %}:{{ member.line_number }}{% endif %}</strong>
+            <strong class="truncate-path" title="{{ member.file_path or 'n/a' }}{% if member.line_number %}:{{ member.line_number }}{% endif %}">{{ member.file_path or "n/a" }}{% if member.line_number %}:{{ member.line_number }}{% endif %}</strong>
           </li>
           {% endfor %}
         </ul>
@@ -849,7 +891,22 @@ AI_BASE_URL=http://127.0.0.1:11434/v1</pre>
   {% if scan_summary.ai_status.error_message %}
   <p class="help-text">{{ scan_summary.ai_status.error_message }}</p>
   {% endif %}
-  <p class="help-text">Readiness: {{ scan_summary.ai_status.readiness_status_label }} · provider {{ scan_summary.ai_status.provider }} · model {{ scan_summary.ai_status.model or "n/a" }}</p>
+  <p class="help-text">Readiness {{ scan_summary.ai_status.readiness_status_label }} · provider {{ scan_summary.ai_status.provider }} · model {{ scan_summary.ai_status.model or "n/a" }}</p>
+  {% if scan_summary.ai_status.show_setup_hint %}
+  <details class="subtle-details compact-details top-gap">
+    <summary>Example AI env snippets</summary>
+    <div class="section-grid top-gap">
+      <article>
+        <p class="help-text"><strong>{{ scan_summary.ai_status.setup_examples.disabled.label }}</strong></p>
+        <pre class="compact-pre">{{ scan_summary.ai_status.setup_examples.disabled.snippet }}</pre>
+      </article>
+      <article>
+        <p class="help-text"><strong>{{ scan_summary.ai_status.setup_examples.ollama.label }}</strong></p>
+        <pre class="compact-pre">{{ scan_summary.ai_status.setup_examples.ollama.snippet }}</pre>
+      </article>
+    </div>
+  </details>
+  {% endif %}
   {% if scan_summary.ai_status.readiness_warnings %}
   <ul class="summary-list compact-list">
     {% for warning in scan_summary.ai_status.readiness_warnings %}

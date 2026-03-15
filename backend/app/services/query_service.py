@@ -60,6 +60,41 @@ REVIEW_MODE_LABELS = {
     "dependency_config": "Dependency/config issues",
     "tooling": "Tooling/coverage issues",
 }
+DEFAULT_AI_SETUP_EXAMPLES = {
+    "disabled": {
+        "label": "Disabled/default mode",
+        "snippet": "AI_ENABLED=false\nAI_PROVIDER=disabled",
+    },
+    "ollama": {
+        "label": "Local Ollama / OpenAI-compatible",
+        "snippet": (
+            "AI_ENABLED=true\n"
+            "AI_PROVIDER=ollama\n"
+            "AI_MODEL=llama3.1:8b\n"
+            "AI_BASE_URL=http://127.0.0.1:11434/v1"
+        ),
+    },
+    "openai_compatible": {
+        "label": "Hosted OpenAI-compatible gateway",
+        "snippet": (
+            "AI_ENABLED=true\n"
+            "AI_PROVIDER=openai_compatible\n"
+            "AI_MODEL=gpt-4o-mini\n"
+            "AI_BASE_URL=https://your-gateway.example.com/v1\n"
+            "AI_API_KEY=replace-me"
+        ),
+    },
+    "openai": {
+        "label": "Hosted OpenAI-style endpoint",
+        "snippet": (
+            "AI_ENABLED=true\n"
+            "AI_PROVIDER=openai\n"
+            "AI_MODEL=gpt-4o-mini\n"
+            "AI_BASE_URL=https://api.openai.com/v1\n"
+            "AI_API_KEY=replace-me"
+        ),
+    },
+}
 
 
 def _is_dependency_category(category: str) -> bool:
@@ -239,12 +274,15 @@ def build_ai_status_summary(scan_job: ScanJob, ai_readiness: dict[str, Any]) -> 
         summary_text = (
             "AI enrichment failed for this scan. Core scanning results remain available and authoritative."
         )
+    setup_examples = ai_readiness.get("examples", DEFAULT_AI_SETUP_EXAMPLES)
     return {
         "status": status,
         "status_label": labels[status],
         "status_tone": tones[status],
         "active_for_scan": active_for_scan,
-        "show_setup_hint": status == "disabled",
+        "show_setup_hint": status == "disabled" or ai_readiness.get("show_setup_hint", False),
+        "setup_hint": ai_readiness.get("setup_hint"),
+        "setup_examples": setup_examples,
         "error_message": summarize_ai_error(scan_job.ai_error, disabled=status == "disabled"),
         "summary_text": summary_text,
         "provider": ai_readiness.get("provider", "disabled"),

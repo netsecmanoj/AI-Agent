@@ -34,6 +34,15 @@ async def lifespan(_: FastAPI):
     else:
         for warning in requirements_summary["warnings"]:
             logger.warning("scanner preflight warning: %s", warning)
+    ai_summary = requirements_summary["ai"]
+    logger.info(
+        "ai readiness: %s (provider=%s model=%s)",
+        ai_summary["status_label"],
+        ai_summary["provider"],
+        ai_summary["model"] or "n/a",
+    )
+    for warning in ai_summary["warnings"]:
+        logger.warning("ai readiness warning: %s", warning)
     job_runner = get_job_runner()
     job_runner.start()
     if settings.cleanup_on_startup:
